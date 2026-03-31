@@ -1339,6 +1339,7 @@ export default function App() {
         </div>
         <CentralDayPanel
           obra={obraAtual}
+          productPersona={productPersona}
           onOpenSection={setNavAtiva}
         />
         <DecisionBoard

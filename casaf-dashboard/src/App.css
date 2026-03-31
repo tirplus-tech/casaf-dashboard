@@ -2485,6 +2485,95 @@ textarea:focus-visible {
   line-height: 1.7;
 }
 
+.portfolio-day-item-warning {
+  background: linear-gradient(145deg, rgba(255, 248, 235, 0.98), rgba(254, 242, 242, 0.92));
+}
+
+.portfolio-day-item-ritual {
+  background: linear-gradient(145deg, rgba(240, 249, 255, 0.98), rgba(236, 253, 245, 0.92));
+}
+
+.portfolio-duty-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.portfolio-duty-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  background: rgba(255, 255, 255, 0.76);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast), background var(--motion-fast);
+}
+
+.portfolio-duty-row strong {
+  display: block;
+  font-size: 14px;
+  color: #10203a;
+  margin-bottom: 4px;
+}
+
+.portfolio-duty-row span {
+  display: block;
+  font-size: 12px;
+  line-height: 1.65;
+  color: #64748b;
+}
+
+.portfolio-duty-row small {
+  font-size: 11px;
+  color: #475569;
+  font-weight: 700;
+}
+
+.portfolio-duty-empty {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.7;
+  padding: 10px 0 2px;
+}
+
+.portfolio-ritual-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.portfolio-ritual-item {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 12px 0;
+  border-bottom: 0.5px solid rgba(226, 232, 240, 0.9);
+}
+
+.portfolio-ritual-item strong {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(15, 118, 110, 0.08));
+  color: #1d4ed8;
+  font-size: 14px;
+}
+
+.portfolio-ritual-item span {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #52627d;
+}
+
 .portfolio-cards-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -4262,6 +4351,10 @@ textarea:focus-visible {
 
   .portfolio-decision-meta {
     justify-content: flex-start;
+  }
+
+  .portfolio-duty-row {
+    grid-template-columns: 1fr;
   }
 }
 

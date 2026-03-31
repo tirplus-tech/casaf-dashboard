@@ -120,6 +120,150 @@ function sortByDashboardDateDesc(items) {
   });
 }
 
+function getPendingChecklistCount(obra) {
+  return obra.operacao.checklist.filter((item) => item.status !== 'done').length;
+}
+
+function getOpenDecisionCount(obra) {
+  return (obra.decisoes || []).filter((item) => item.status !== 'Concluída').length;
+}
+
+function getAwaitingResponseCount(obra) {
+  const pendencias = obra.operacao.pendencias.filter((item) => ['aguardando', 'aguardando_retorno', 'em_tratativa'].includes(item.status)).length;
+  const decisions = (obra.decisoes || []).filter((item) => ['A decidir', 'Em tratativa', 'Aguardando retorno', 'Em andamento'].includes(item.status)).length;
+
+  return pendencias + decisions;
+}
+
+function buildPersonaDutyBoard(persona, obras) {
+  const sortedByPressure = [...obras].sort((a, b) => {
+    const leftScore = (a.pendenciasAbertas * 2) + getOpenDecisionCount(a);
+    const rightScore = (b.pendenciasAbertas * 2) + getOpenDecisionCount(b);
+
+    if (rightScore !== leftScore) {
+      return rightScore - leftScore;
+    }
+
+    const leftDate = parseDashboardDateLabel(a.proximaData)?.getTime() || Number.POSITIVE_INFINITY;
+    const rightDate = parseDashboardDateLabel(b.proximaData)?.getTime() || Number.POSITIVE_INFINITY;
+    return leftDate - rightDate;
+  });
+
+  const openFinanceRows = obras.flatMap((obra) => (obra.financeiroOperacional?.colaboradores || [])
+    .filter((item) => item.nfStatus !== 'Emitida' || item.cobrancaStatus === 'Alta')
+    .map((item) => ({
+      obraId: obra.id,
+      obraNome: obra.nomeCurto,
+      title: item.nome,
+      subtitle: item.motivoCobranca || item.observacaoFinanceira || 'Fechamento ainda exige atuação.',
+      meta: item.fechamentoStatus || item.pagamentoStatus || 'Em apuração',
+    })));
+
+  const boardMap = {
+    executive: {
+      title: 'Fila da liderança hoje',
+      helper: 'O que a diretoria precisa destravar para o sistema continuar vivo no dia a dia.',
+      items: sortedByPressure.slice(0, 3).map((obra) => ({
+        obraId: obra.id,
+        title: obra.nomeCurto,
+        subtitle: obra.proximaAcao,
+        meta: `${getOpenDecisionCount(obra)} decisão(ões) abertas • ${obra.pendenciasAbertas} pendência(s)`,
+      })),
+    },
+    engineering: {
+      title: 'Fila técnica do dia',
+      helper: 'Aberturas e bloqueios que a engenharia precisa resolver antes de entrar em detalhe.',
+      items: sortedByPressure.slice(0, 3).map((obra) => ({
+        obraId: obra.id,
+        title: obra.nomeCurto,
+        subtitle: obra.operacao.pendencias.find((item) => item.status === 'critico')?.titulo || obra.proximaAcao,
+        meta: `${getPendingChecklistCount(obra)} item(ns) de checklist • checkpoint ${obra.proximaData}`,
+      })),
+    },
+    finance: {
+      title: 'Fila financeira do dia',
+      helper: 'Casos que mais podem virar cobrança, atraso de pagamento ou ruído com fornecedor.',
+      items: (openFinanceRows.length > 0 ? openFinanceRows : sortedByPressure.slice(0, 3).map((obra) => ({
+        obraId: obra.id,
+        obraNome: obra.nomeCurto,
+        title: obra.nomeCurto,
+        subtitle: obra.financeiroResumo[2]?.sub || obra.proximaAcao,
+        meta: `${obra.financeiroResumo[2]?.valor || 'Sem valor'} • ${obra.proximaData}`,
+      }))).slice(0, 3),
+    },
+    field: {
+      title: 'Fila operacional do campo',
+      helper: 'O que a equipe precisa usar todos os dias para não perder prioridade, disciplina e fechamento.',
+      items: sortedByPressure.slice(0, 3).map((obra) => ({
+        obraId: obra.id,
+        title: obra.nomeCurto,
+        subtitle: obra.operacao.tarefasDia.find((item) => item.status === 'prioridade')?.titulo || obra.proximaAcao,
+        meta: `${getPendingChecklistCount(obra)} checklist aberto(s) • ${obra.fotosObra.length} evidência(s)`,
+      })),
+    },
+  };
+
+  return boardMap[persona] || boardMap.executive;
+}
+
+function buildResponseDebtBoard(persona, obras) {
+  const ranked = [...obras]
+    .map((obra) => ({
+      obra,
+      count: getAwaitingResponseCount(obra),
+    }))
+    .filter((item) => item.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3);
+
+  const labelMap = {
+    executive: 'Sem resposta da liderança',
+    engineering: 'Sem resposta técnica',
+    finance: 'Sem resposta financeira',
+    field: 'Sem resposta da operação',
+  };
+
+  return {
+    title: labelMap[persona] || labelMap.executive,
+    helper: 'Esses itens envelhecem rápido e viram ruído operacional quando o sistema não é usado todos os dias.',
+    items: ranked.map(({ obra, count }) => ({
+      obraId: obra.id,
+      title: obra.nomeCurto,
+      subtitle: obra.operacao.pendencias.find((item) => ['aguardando', 'aguardando_retorno', 'em_tratativa'].includes(item.status))?.titulo
+        || obra.decisoes?.find((item) => item.status !== 'Concluída')?.titulo
+        || obra.proximaAcao,
+      meta: `${count} item(ns) aguardando ação ou retorno`,
+    })),
+  };
+}
+
+function buildDailyRitual(persona) {
+  const ritualMap = {
+    executive: [
+      'Entre vendo a fila de decisões e escolha uma obra foco.',
+      'Confirme quem ficou responsável e qual prazo vale hoje.',
+      'Saia com um checkpoint claro para a equipe e para o cliente.',
+    ],
+    engineering: [
+      'Abra primeiro a obra com bloqueio crítico ou checklist aberto.',
+      'Atualize pendência, decisão e liberação no mesmo fluxo.',
+      'Feche o dia com frente liberada ou impedimento formalizado.',
+    ],
+    finance: [
+      'Comece pelos casos com NF pendente ou cobrança alta.',
+      'Atualize o status do fechamento antes de responder fora do sistema.',
+      'Saia da tela com previsão, dono e resposta registrada.',
+    ],
+    field: [
+      'Abra a operação e alinhe a prioridade da frente logo cedo.',
+      'Registre apontamento, checklist e evidência durante o dia.',
+      'Feche a frente sem deixar pendência sem dono ou sem alinhamento.',
+    ],
+  };
+
+  return ritualMap[persona] || ritualMap.executive;
+}
+
 export default function PortfolioOverview({ obras, onSelect, onOpenAssistant, onQuickAction, focusTarget, productPersona }) {
   const [assistantDraft, setAssistantDraft] = useState('');
   const [search, setSearch] = useState('');
@@ -170,6 +314,9 @@ export default function PortfolioOverview({ obras, onSelect, onOpenAssistant, on
   const gapScanner = buildGapScanner(obras);
   const clientSummary = buildClientSummary(obras, obraPrioritaria, nextVisit, totalPendencias);
   const primaryQueue = leadershipQueue.slice(0, 2);
+  const dutyBoard = buildPersonaDutyBoard(productPersona, obras);
+  const responseDebtBoard = buildResponseDebtBoard(productPersona, obras);
+  const dailyRitual = buildDailyRitual(productPersona);
   const workflowCards = [
     {
       title: 'Reunião diária',
@@ -272,6 +419,66 @@ export default function PortfolioOverview({ obras, onSelect, onOpenAssistant, on
           <span>Leitura rápida</span>
           <strong>{averageProgress}% de progresso médio</strong>
           <p>{totalPendencias} pendência(s) sob gestão no portfólio.</p>
+        </div>
+      </div>
+
+      <div className="portfolio-day-board animate-in">
+        <div className="portfolio-day-board-head">
+          <div>
+            <div className="card-title">Rotina que faz o sistema virar hábito</div>
+            <div className="card-helper-text">Esse bloco organiza o uso diário por papel: onde entrar, o que não pode envelhecer e como sair da plataforma com o dia controlado.</div>
+          </div>
+        </div>
+        <div className="portfolio-day-board-grid">
+          <div className="portfolio-day-item">
+            <span>{dutyBoard.title}</span>
+            <strong>{dutyBoard.items[0]?.title || 'Sem fila dominante agora'}</strong>
+            <p>{dutyBoard.helper}</p>
+            <div className="portfolio-duty-list">
+              {dutyBoard.items.map((item) => (
+                <button key={`${item.obraId}-${item.title}`} type="button" className="portfolio-duty-row" onClick={() => onSelect(item.obraId)}>
+                  <div>
+                    <strong>{item.title}</strong>
+                    <span>{item.subtitle}</span>
+                  </div>
+                  <small>{item.meta}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="portfolio-day-item portfolio-day-item-warning">
+            <span>{responseDebtBoard.title}</span>
+            <strong>{responseDebtBoard.items[0]?.title || 'Nada sem resposta agora'}</strong>
+            <p>{responseDebtBoard.helper}</p>
+            <div className="portfolio-duty-list">
+              {responseDebtBoard.items.length > 0 ? responseDebtBoard.items.map((item) => (
+                <button key={`${item.obraId}-${item.meta}`} type="button" className="portfolio-duty-row" onClick={() => onSelect(item.obraId)}>
+                  <div>
+                    <strong>{item.title}</strong>
+                    <span>{item.subtitle}</span>
+                  </div>
+                  <small>{item.meta}</small>
+                </button>
+              )) : (
+                <div className="portfolio-duty-empty">O portfólio está sem débitos claros de resposta neste momento.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="portfolio-day-item portfolio-day-item-ritual">
+            <span>Rito obrigatório do dia</span>
+            <strong>Como usar sem sobrecarga</strong>
+            <p>Se o time seguir esse roteiro, o sistema deixa de ser só consulta e vira gestão diária.</p>
+            <div className="portfolio-ritual-list">
+              {dailyRitual.map((item, index) => (
+                <div key={item} className="portfolio-ritual-item">
+                  <strong>{index + 1}</strong>
+                  <span>{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 

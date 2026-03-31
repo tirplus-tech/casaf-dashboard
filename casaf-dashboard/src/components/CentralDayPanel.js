@@ -1,13 +1,41 @@
 import React from 'react';
 
-export default function CentralDayPanel({ obra, onOpenSection }) {
+function buildPersonaRitual(persona) {
+  const map = {
+    executive: [
+      'Confirmar a frente mais sensível da obra.',
+      'Cobrar dono e prazo do item sem resposta.',
+      'Sair com um checkpoint claro para a equipe.',
+    ],
+    engineering: [
+      'Abrir primeiro a pendência crítica ou a liberação em atraso.',
+      'Atualizar alinhamento e decisão antes de responder fora do sistema.',
+      'Fechar o dia com checklist e bloqueio formalizados.',
+    ],
+    finance: [
+      'Revisar quem está segurando fechamento ou NF.',
+      'Atualizar status de pagamento e resposta combinada.',
+      'Sair com previsão e próximo retorno registrados.',
+    ],
+    field: [
+      'Começar pela tarefa prioritária da frente.',
+      'Registrar apontamento e evidência ao longo do dia.',
+      'Encerrar com checklist e fechamento consistentes.',
+    ],
+  };
+
+  return map[persona] || map.executive;
+}
+
+export default function CentralDayPanel({ obra, onOpenSection, productPersona = 'executive' }) {
   const tarefasPrioritarias = obra.operacao.tarefasDia.filter((item) => item.status === 'prioridade').slice(0, 3);
   const pendenciasCriticas = obra.operacao.pendencias.filter((item) => item.status === 'critico');
+  const pendenciasSemResposta = obra.operacao.pendencias.filter((item) => ['aguardando', 'aguardando_retorno', 'em_tratativa'].includes(item.status)).slice(0, 3);
   const aguardandoTerceiros = obra.operacao.pendencias.filter((item) => String(item.dono || '').toLowerCase().includes('cliente') || String(item.dono || '').toLowerCase().includes('suprimentos'));
   const fotoDestaque = obra.fotosObra[0];
   const apontamentoDestaque = obra.operacao.apontamentos[0];
   const fechamentoDia = obra.operacao.fechamentoDia;
-  const presentTeam = obra.operacao.presencaHoje.filter((item) => item.status === 'presente').length;
+  const presentTeam = obra.operacao.presencaHoje.filter((item) => String(item.status).toLowerCase() === 'presente').length;
   const totalTeam = obra.operacao.presencaHoje.length;
   const checklistDone = obra.operacao.checklist.filter((item) => item.status === 'done').length;
   const checklistTotal = obra.operacao.checklist.length;
@@ -31,6 +59,7 @@ export default function CentralDayPanel({ obra, onOpenSection }) {
     },
   ];
   const readinessScore = dailyClosureReadiness.filter((item) => item.ok).length;
+  const personaRitual = buildPersonaRitual(productPersona);
   const dailyScorecards = [
     {
       label: 'Críticas hoje',
@@ -158,6 +187,39 @@ export default function CentralDayPanel({ obra, onOpenSection }) {
               <p>{fechamentoDia.summary}</p>
             </div>
           ) : null}
+        </div>
+      </div>
+
+      <div className="content-grid">
+        <div className="surface-card animate-in stagger-2">
+          <div className="card-title">Itens sem resposta na obra</div>
+          <div className="card-helper-text">Esses itens costumam envelhecer rápido e explicam por que o sistema precisa ser usado todos os dias.</div>
+          <div className="portfolio-duty-list">
+            {pendenciasSemResposta.length > 0 ? pendenciasSemResposta.map((item) => (
+              <button key={`${item.titulo}-${item.prazo}`} type="button" className="portfolio-duty-row" onClick={() => onOpenSection('operacao')}>
+                <div>
+                  <strong>{item.titulo}</strong>
+                  <span>{item.alinhamento || item.impacto}</span>
+                </div>
+                <small>{item.dono} • {item.prazo || 'A definir'}</small>
+              </button>
+            )) : (
+              <div className="portfolio-duty-empty">A obra está sem itens aguardando resposta explícita neste momento.</div>
+            )}
+          </div>
+        </div>
+
+        <div className="surface-card animate-in stagger-3">
+          <div className="card-title">Rito do papel nesta obra</div>
+          <div className="card-helper-text">Esse roteiro ajuda o sistema a virar rotina de trabalho, não só consulta eventual.</div>
+          <div className="portfolio-ritual-list">
+            {personaRitual.map((item, index) => (
+              <div key={item} className="portfolio-ritual-item">
+                <strong>{index + 1}</strong>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </>
