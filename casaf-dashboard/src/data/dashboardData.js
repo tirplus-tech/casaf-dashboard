@@ -134,9 +134,9 @@ export const obras = [
     ],
     operacao: {
       tarefasDia: [
-        { titulo: 'Liberar frente da pintura externa', responsavel: 'Eng. Paulo', horario: '08:00', status: 'prioridade' },
-        { titulo: 'Conferir fixação dos balancins', responsavel: 'Téc. Segurança', horario: '09:30', status: 'planejado' },
-        { titulo: 'Atualizar percentual da fachada lateral', responsavel: 'Mestre Carlos', horario: '16:00', status: 'campo' },
+        { titulo: 'Liberar frente da pintura externa', responsavel: 'Eng. Paulo', horario: '08:00', prazo: '31 Mar 2026 • 10:00', alinhamento: 'Engenharia precisa sair desta manhã com frente liberada e sequência clara para pintura.', ultimaMovimentacao: 'Aguardando liberação técnica', status: 'prioridade' },
+        { titulo: 'Conferir fixação dos balancins', responsavel: 'Téc. Segurança', horario: '09:30', prazo: '31 Mar 2026 • 11:00', alinhamento: 'Segurança ficou de validar checklist completo antes da subida da próxima equipe.', ultimaMovimentacao: 'Em campo às 09:30', status: 'campo' },
+        { titulo: 'Atualizar percentual da fachada lateral', responsavel: 'Mestre Carlos', horario: '16:00', prazo: '31 Mar 2026 • 16:30', alinhamento: 'Mestre precisa devolver percentual consolidado e pontos travados antes do fechamento.', ultimaMovimentacao: 'Aguardando retorno do mestre', status: 'aguardando_retorno' },
       ],
       pendencias: [
         { titulo: 'Aprovação da cor final da fachada', impacto: 'Pode atrasar pintura final', dono: 'Cliente / Engenharia', prazo: '31 Mar 2026', alinhamento: 'Condomínio ficou de validar a cartela final na próxima rodada.', status: 'aguardando' },
@@ -349,9 +349,9 @@ export const obras = [
     ],
     operacao: {
       tarefasDia: [
-        { titulo: 'Reunião de alinhamento com cliente', responsavel: 'Arq. Marina', horario: '10:00', status: 'prioridade' },
-        { titulo: 'Conferir pontos da automação no pavimento superior', responsavel: 'Eng. Lucas', horario: '11:30', status: 'campo' },
-        { titulo: 'Atualizar mapa de esquadrias especiais', responsavel: 'Adm. Obra', horario: '15:30', status: 'planejado' },
+        { titulo: 'Reunião de alinhamento com cliente', responsavel: 'Arq. Marina', horario: '10:00', prazo: '31 Mar 2026 • 12:00', alinhamento: 'Arquitetura precisa sair da reunião com definição objetiva para não travar compras.', ultimaMovimentacao: 'Reunião confirmada com o cliente', status: 'prioridade' },
+        { titulo: 'Conferir pontos da automação no pavimento superior', responsavel: 'Eng. Lucas', horario: '11:30', prazo: '31 Mar 2026 • 14:00', alinhamento: 'Engenharia está validando a passagem técnica junto da equipe de automação.', ultimaMovimentacao: 'Em campo às 11:30', status: 'campo' },
+        { titulo: 'Atualizar mapa de esquadrias especiais', responsavel: 'Adm. Obra', horario: '15:30', prazo: '31 Mar 2026 • 17:00', alinhamento: 'Administração precisa devolver o mapa revisado para compras responder o fornecedor.', ultimaMovimentacao: 'Aguardando retorno do administrativo', status: 'aguardando_retorno' },
       ],
       pendencias: [
         { titulo: 'Confirmação do fornecedor das esquadrias', impacto: 'Impacta cronograma da fachada principal', dono: 'Compras', prazo: '01 Abr 2026', alinhamento: 'Fornecedor sinalizou retorno comercial até o fim do dia.', status: 'critico' },

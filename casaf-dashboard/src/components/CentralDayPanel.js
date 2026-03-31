@@ -29,6 +29,7 @@ function buildPersonaRitual(persona) {
 
 export default function CentralDayPanel({ obra, onOpenSection, productPersona = 'executive' }) {
   const tarefasPrioritarias = obra.operacao.tarefasDia.filter((item) => item.status === 'prioridade').slice(0, 3);
+  const tarefasSemResposta = obra.operacao.tarefasDia.filter((item) => ['aguardando_retorno', 'prioridade'].includes(item.status)).slice(0, 2);
   const pendenciasCriticas = obra.operacao.pendencias.filter((item) => item.status === 'critico');
   const pendenciasSemResposta = obra.operacao.pendencias.filter((item) => ['aguardando', 'aguardando_retorno', 'em_tratativa'].includes(item.status)).slice(0, 3);
   const aguardandoTerceiros = obra.operacao.pendencias.filter((item) => String(item.dono || '').toLowerCase().includes('cliente') || String(item.dono || '').toLowerCase().includes('suprimentos'));
@@ -60,6 +61,18 @@ export default function CentralDayPanel({ obra, onOpenSection, productPersona = 
   ];
   const readinessScore = dailyClosureReadiness.filter((item) => item.ok).length;
   const personaRitual = buildPersonaRitual(productPersona);
+  const unresolvedItems = [
+    ...tarefasSemResposta.map((item) => ({
+      title: item.titulo,
+      note: item.alinhamento || `Responsável ${item.responsavel}`,
+      meta: `${item.responsavel} • ${item.prazo || item.horario || 'A definir'}`,
+    })),
+    ...pendenciasSemResposta.map((item) => ({
+      title: item.titulo,
+      note: item.alinhamento || item.impacto,
+      meta: `${item.dono} • ${item.prazo || 'A definir'}`,
+    })),
+  ].slice(0, 4);
   const dailyScorecards = [
     {
       label: 'Críticas hoje',
@@ -195,13 +208,13 @@ export default function CentralDayPanel({ obra, onOpenSection, productPersona = 
           <div className="card-title">Itens sem resposta na obra</div>
           <div className="card-helper-text">Esses itens costumam envelhecer rápido e explicam por que o sistema precisa ser usado todos os dias.</div>
           <div className="portfolio-duty-list">
-            {pendenciasSemResposta.length > 0 ? pendenciasSemResposta.map((item) => (
-              <button key={`${item.titulo}-${item.prazo}`} type="button" className="portfolio-duty-row" onClick={() => onOpenSection('operacao')}>
+            {unresolvedItems.length > 0 ? unresolvedItems.map((item) => (
+              <button key={`${item.title}-${item.meta}`} type="button" className="portfolio-duty-row" onClick={() => onOpenSection('operacao')}>
                 <div>
-                  <strong>{item.titulo}</strong>
-                  <span>{item.alinhamento || item.impacto}</span>
+                  <strong>{item.title}</strong>
+                  <span>{item.note}</span>
                 </div>
-                <small>{item.dono} • {item.prazo || 'A definir'}</small>
+                <small>{item.meta}</small>
               </button>
             )) : (
               <div className="portfolio-duty-empty">A obra está sem itens aguardando resposta explícita neste momento.</div>

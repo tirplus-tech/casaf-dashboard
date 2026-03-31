@@ -2,8 +2,16 @@ import React, { useState } from 'react';
 import DecisionBoard from './DecisionBoard';
 
 function getTaskBadge(status) {
+  if (status === 'done') {
+    return { label: 'Concluída', className: 'resolved' };
+  }
+
   if (status === 'prioridade') {
     return { label: 'Prioridade', className: 'critical' };
+  }
+
+  if (status === 'aguardando_retorno') {
+    return { label: 'Aguardando retorno', className: '' };
   }
 
   if (status === 'campo') {
@@ -69,6 +77,8 @@ export default function OperationSection({
   const latestNote = operacao.apontamentos[0];
   const waitingThirdParties = operacao.pendencias.filter((item) => String(item.dono || '').toLowerCase().includes('cliente') || String(item.dono || '').toLowerCase().includes('suprimentos')).length;
   const evidenceCount = operacao.evidenciasRecentes || 0;
+  const tasksAwaitingResponse = operacao.tarefasDia.filter((item) => ['aguardando_retorno', 'prioridade'].includes(item.status)).length;
+  const tasksDone = operacao.tarefasDia.filter((item) => item.status === 'done').length;
   const quickActions = [
     { id: 'material', eyebrow: 'Suprimentos', title: 'Solicitar material', copy: 'Abre uma pendencia e registra no historico para acelerar reposicao.' },
     { id: 'delay', eyebrow: 'Prazo', title: 'Registrar atraso', copy: 'Marca desvio critico para engenharia agir sem depender de conversa paralela.' },
@@ -84,8 +94,10 @@ export default function OperationSection({
 
   const taskBreakdown = [
     { label: 'Prioridade', value: operacao.tarefasDia.filter((item) => item.status === 'prioridade').length, color: '#1d4ed8' },
+    { label: 'Aguardando retorno', value: operacao.tarefasDia.filter((item) => item.status === 'aguardando_retorno').length, color: '#d97706' },
     { label: 'Campo', value: operacao.tarefasDia.filter((item) => item.status === 'campo').length, color: '#0f766e' },
     { label: 'Planejado', value: operacao.tarefasDia.filter((item) => item.status === 'planejado').length, color: '#94a3b8' },
+    { label: 'Concluídas', value: tasksDone, color: '#16a34a' },
   ];
   const pendenciaBreakdown = [
     { label: 'Criticas', value: operacao.pendencias.filter((item) => item.status === 'critico').length, color: '#dc2626' },
@@ -100,6 +112,28 @@ export default function OperationSection({
 
   const filteredTasks = operacao.tarefasDia.filter((item) => taskFilter === 'all' ? true : item.status === taskFilter);
   const filteredPendencias = operacao.pendencias.filter((item) => pendenciaFilter === 'all' ? true : item.status === pendenciaFilter);
+  const responseDebtItems = [
+    ...operacao.tarefasDia
+      .filter((item) => ['aguardando_retorno', 'prioridade'].includes(item.status))
+      .slice(0, 2)
+      .map((item) => ({
+        type: 'Tarefa',
+        title: item.titulo,
+        owner: item.responsavel,
+        due: item.prazo || item.horario || 'A definir',
+        note: item.alinhamento || 'Tarefa sem alinhamento recente.',
+      })),
+    ...operacao.pendencias
+      .filter((item) => ['aguardando', 'aguardando_retorno', 'em_tratativa', 'critico'].includes(item.status))
+      .slice(0, 2)
+      .map((item) => ({
+        type: 'Pendência',
+        title: item.titulo,
+        owner: item.dono,
+        due: item.prazo || 'A definir',
+        note: item.alinhamento || item.impacto,
+      })),
+  ].slice(0, 4);
   const closureRequirements = [
     { ok: criticalPendencias === 0, label: 'Sem pendência crítica aberta' },
     { ok: checklistDone === operacao.checklist.length, label: 'Checklist operacional concluído' },
@@ -233,6 +267,45 @@ export default function OperationSection({
         </div>
       </div>
 
+      <div className='content-grid'>
+        <div className='surface-card animate-in'>
+          <div className='card-title'>Sala de comando do dia</div>
+          <div className='card-helper-text'>Essa leitura existe para o engenheiro e a liderança entenderem, em segundos, o que exige cobrança antes de abrir várias listas.</div>
+          <div className='workflow-ritual-grid'>
+            <div className='workflow-ritual-card'>
+              <span>Tarefas que pedem retorno</span>
+              <strong>{tasksAwaitingResponse}</strong>
+            </div>
+            <div className='workflow-ritual-card'>
+              <span>Pendências críticas</span>
+              <strong>{criticalPendencias}</strong>
+            </div>
+            <div className='workflow-ritual-card'>
+              <span>Checklist pendente</span>
+              <strong>{operacao.checklist.length - checklistDone}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className='surface-card animate-in stagger-2'>
+          <div className='card-title'>Itens que ainda pedem resposta</div>
+          <div className='card-helper-text'>Se o sistema virar hábito, essa fila deve ser esvaziada todos os dias.</div>
+          <div className='portfolio-duty-list'>
+            {responseDebtItems.length > 0 ? responseDebtItems.map((item) => (
+              <div key={`${item.type}-${item.title}`} className='portfolio-duty-row'>
+                <div>
+                  <strong>{item.type}: {item.title}</strong>
+                  <span>{item.note}</span>
+                </div>
+                <small>{item.owner} • {item.due}</small>
+              </div>
+            )) : (
+              <div className='portfolio-duty-empty'>A frente está com boa cadência e sem itens explícitos aguardando resposta.</div>
+            )}
+          </div>
+        </div>
+      </div>
+
       <div className='surface-card animate-in stagger-2'>
         <div className='card-title'>Rito operacional recomendado</div>
         <div className='card-helper-text'>Essa camada ajuda a equipe a usar o sistema do jeito certo: decidir, executar e fechar com rastreabilidade.</div>
@@ -254,7 +327,7 @@ export default function OperationSection({
               <div className='card-helper-text'>Filtre por prioridade para concentrar a equipe na frente mais importante.</div>
             </div>
             <div className='filter-chip-row compact'>
-              {[{ id: 'all', label: 'Tudo' }, { id: 'prioridade', label: 'Prioridade' }, { id: 'campo', label: 'Campo' }, { id: 'planejado', label: 'Planejado' }].map((item) => (
+              {[{ id: 'all', label: 'Tudo' }, { id: 'prioridade', label: 'Prioridade' }, { id: 'aguardando_retorno', label: 'Aguardando retorno' }, { id: 'campo', label: 'Campo' }, { id: 'planejado', label: 'Planejado' }, { id: 'done', label: 'Concluídas' }].map((item) => (
                 <button key={item.id} type='button' className={`filter-chip ${taskFilter === item.id ? 'active' : ''}`} onClick={() => setTaskFilter(item.id)}>
                   {item.label}
                 </button>
@@ -265,6 +338,8 @@ export default function OperationSection({
             <input className='operation-input' value={operacao.novaTarefaTitulo} onChange={(event) => operacao.onDraftChange('novaTarefaTitulo', event.target.value)} placeholder='Nova tarefa do dia' />
             <input className='operation-input' value={operacao.novaTarefaResponsavel} onChange={(event) => operacao.onDraftChange('novaTarefaResponsavel', event.target.value)} placeholder='Responsavel' />
             <input className='operation-input' value={operacao.novaTarefaHorario} onChange={(event) => operacao.onDraftChange('novaTarefaHorario', event.target.value)} placeholder='Horario' />
+            <input className='operation-input' value={operacao.novaTarefaPrazo} onChange={(event) => operacao.onDraftChange('novaTarefaPrazo', event.target.value)} placeholder='Prazo combinado' />
+            <input className='operation-input operation-full-span' value={operacao.novoAlinhamentoTarefa} onChange={(event) => operacao.onDraftChange('novoAlinhamentoTarefa', event.target.value)} placeholder='Alinhamento da tarefa: o que ficou combinado, quem deve responder e o que falta para concluir...' />
             <button type='button' className='portfolio-card-button operation-submit-button' onClick={operacao.onAddTask}>Criar tarefa</button>
           </div>
           {filteredTasks.length > 0 ? filteredTasks.map((tarefa) => {
@@ -274,6 +349,26 @@ export default function OperationSection({
                 <div>
                   <div className='operation-title'>{tarefa.titulo}</div>
                   <div className='operation-copy'>{tarefa.responsavel}</div>
+                  <div className='operation-meta'>Prazo: {tarefa.prazo || tarefa.horario || 'A definir'}{tarefa.ultimaMovimentacao ? ` • ${tarefa.ultimaMovimentacao}` : ''}</div>
+                  {tarefa.alinhamento ? <div className='card-helper-text' style={{ marginTop: 6 }}>{tarefa.alinhamento}</div> : null}
+                  <div className='operation-inline-note'>
+                    <input
+                      className='operation-input'
+                      value={alignmentDrafts[`task-${tarefa.titulo}`] || ''}
+                      onChange={(event) => setAlignmentDrafts((current) => ({ ...current, [`task-${tarefa.titulo}`]: event.target.value }))}
+                      placeholder='Registrar alinhamento rápido desta tarefa...'
+                    />
+                    <button
+                      type='button'
+                      className='inline-action-button'
+                      onClick={() => {
+                        tarefa.onAddAlignment(alignmentDrafts[`task-${tarefa.titulo}`] || '');
+                        setAlignmentDrafts((current) => ({ ...current, [`task-${tarefa.titulo}`]: '' }));
+                      }}
+                    >
+                      Salvar alinhamento
+                    </button>
+                  </div>
                 </div>
                 <div className='operation-side'>
                   <span className={`portfolio-chip ${badge.className}`}>{badge.label}</span>

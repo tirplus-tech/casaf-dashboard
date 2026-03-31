@@ -53,6 +53,10 @@ function getWaitingPendencias(obra) {
   return obra.operacao.pendencias.filter((item) => ['aguardando', 'aguardando_retorno', 'em_tratativa'].includes(item.status));
 }
 
+function getUnansweredTasks(obra) {
+  return obra.operacao.tarefasDia.filter((item) => ['prioridade', 'aguardando_retorno'].includes(item.status));
+}
+
 function getPresenceAlerts(obra) {
   return obra.operacao.presencaHoje.filter((item) => item.status !== 'Presente');
 }
@@ -84,6 +88,7 @@ function buildRiskScore(obra) {
   const presenceAlerts = getPresenceAlerts(obra).length;
   const pendingInvoices = getPendingInvoices(obra).length;
   const blockedMtes = getBlockedMtes(obra).length;
+  const unansweredTasks = getUnansweredTasks(obra).length;
 
   const score = Math.min(
     100,
@@ -92,7 +97,8 @@ function buildRiskScore(obra) {
       + (waitingPendencias * 8)
       + (presenceAlerts * 6)
       + (pendingInvoices * 4)
-      + (blockedMtes * 5),
+      + (blockedMtes * 5)
+      + (unansweredTasks * 7),
   );
 
   if (score >= 75) {
@@ -118,6 +124,7 @@ function buildObraContext(obra) {
     risk,
     criticalPendencias: getCriticalPendencias(obra),
     waitingPendencias: getWaitingPendencias(obra),
+    unansweredTasks: getUnansweredTasks(obra),
     presenceAlerts: getPresenceAlerts(obra),
     pendingInvoices: getPendingInvoices(obra),
     blockedMtes: getBlockedMtes(obra),
@@ -409,6 +416,7 @@ function buildObraDecisionSupport(obra) {
     context.blockedMtes[0] ? `Destravar ${context.blockedMtes[0].codigo} para não contaminar a frente seguinte.` : null,
     activeChecklist.length > 0 ? `Fechar ${activeChecklist.length} item(ns) de checklist pendente(s) antes do encerramento do dia.` : null,
     context.pendingInvoices[0] ? `Limpar a pendência financeira de ${context.pendingInvoices[0].nome} para reduzir atrito de fechamento.` : null,
+    context.unansweredTasks[0] ? `Cobrar retorno da tarefa "${context.unansweredTasks[0].titulo}" antes de abrir novas frentes.` : null,
   ]).slice(0, 4);
 
   const watchouts = uniqueStrings([
@@ -416,6 +424,7 @@ function buildObraDecisionSupport(obra) {
     context.presenceAlerts[0] ? `A presença de ${context.presenceAlerts[0].nome} está fora do ideal e pode pressionar produtividade.` : null,
     context.blockedMtes.length > 0 ? `${context.blockedMtes.length} MTE(s) ainda não aprovado(s) podem limitar fluidez do cronograma.` : null,
     executionGap !== null && executionGap > 12 ? `A execução financeira está ${executionGap} ponto(s) acima do avanço físico e merece conferência.` : null,
+    context.unansweredTasks[0] ? `A tarefa "${context.unansweredTasks[0].titulo}" ainda depende de retorno e pode envelhecer mal se não houver cobrança.` : null,
   ]).slice(0, 4);
 
   const decision = context.criticalPendencias[0]
@@ -1365,9 +1374,11 @@ async function answerWithOpenAi(obra, question, history) {
 
 export function getAssistantSuggestions() {
   return [
+    'Quem ainda me deve resposta nesta obra?',
     'Quais são os maiores riscos desta obra hoje?',
     'O que eu deveria priorizar agora?',
     'Quais gargalos podem travar o avanço desta obra?',
+    'Monte um plano de ação do dia para esta obra.',
     'Existe risco de atraso neste projeto?',
     'Como está o financeiro desta obra?',
     'Monte um resumo para eu mandar ao cliente.',

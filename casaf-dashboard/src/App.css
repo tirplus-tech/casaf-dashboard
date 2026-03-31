@@ -1015,6 +1015,24 @@ textarea:focus-visible {
   margin-bottom: 18px;
 }
 
+.assistant-ritual-banner {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.assistant-ritual-pill {
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: rgba(10, 28, 61, 0.06);
+  color: #16325c;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.6;
+  border: 1px solid rgba(29, 78, 216, 0.08);
+}
+
 .assistant-playbook-card {
   border: 1px solid rgba(148, 163, 184, 0.16);
   background: linear-gradient(145deg, rgba(248, 250, 252, 0.98), rgba(239, 246, 255, 0.92));
@@ -1542,6 +1560,7 @@ textarea:focus-visible {
 @media (max-width: 860px) {
   .assistant-entry-card,
   .assistant-launch-card,
+  .assistant-ritual-banner,
   .assistant-playbook-grid,
   .portfolio-differential-grid {
     grid-template-columns: 1fr;
@@ -2635,6 +2654,16 @@ textarea:focus-visible {
   color: #dc2626;
 }
 
+.portfolio-chip.field {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.portfolio-chip.resolved {
+  background: #dcfce7;
+  color: #15803d;
+}
+
 .portfolio-attention-main {
   margin-bottom: 18px;
 }
@@ -3104,7 +3133,7 @@ textarea:focus-visible {
 
 .operation-inline-form {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
   gap: 10px;
   margin-bottom: 16px;
 }

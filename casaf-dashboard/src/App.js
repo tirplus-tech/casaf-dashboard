@@ -62,6 +62,10 @@ function getPendenciaStatusOrder() {
   return ['aguardando', 'em_tratativa', 'aguardando_retorno', 'critico', 'resolvido'];
 }
 
+function getTaskStatusOrder() {
+  return ['planejado', 'campo', 'aguardando_retorno', 'prioridade', 'done'];
+}
+
 function addTimelineEvent(obra, event) {
   const nowLabel = getNowLabel();
 
@@ -297,7 +301,7 @@ export default function App() {
 
   function cycleTaskStatus(index) {
     const currentItem = obraAtual?.operacao?.tarefasDia?.[index];
-    const order = ['planejado', 'campo', 'prioridade'];
+    const order = getTaskStatusOrder();
     updateObraAtual((obra) => {
       let changedItem = null;
       const tarefasDia = obra.operacao.tarefasDia.map((item, itemIndex) => {
@@ -306,7 +310,11 @@ export default function App() {
         }
 
         const next = order[(order.indexOf(item.status) + 1) % order.length];
-        changedItem = { ...item, status: next };
+        changedItem = {
+          ...item,
+          status: next,
+          ultimaMovimentacao: `${next} em ${getNowLabel()}`,
+        };
         return changedItem;
       });
 
@@ -319,6 +327,61 @@ export default function App() {
     if (currentItem) {
       showToast('success', `Tarefa atualizada: ${currentItem.titulo}.`);
     }
+  }
+
+  function addTaskAlignment(index, text) {
+    const content = String(text || '').trim();
+
+    if (!content) {
+      return;
+    }
+
+    updateObraAtual((obra) => {
+      let changedItem = null;
+      const tarefasDia = obra.operacao.tarefasDia.map((item, itemIndex) => {
+        if (itemIndex !== index) {
+          return item;
+        }
+
+        const nextAlignment = {
+          author: actorLabel,
+          text: content,
+          date: getNowLabel(),
+        };
+
+        changedItem = {
+          ...item,
+          alinhamento: content,
+          alinhamentos: [nextAlignment, ...(item.alinhamentos || [])].slice(0, 5),
+          ultimaMovimentacao: `Alinhamento registrado em ${getNowLabel()}`,
+        };
+
+        return changedItem;
+      });
+
+      if (!changedItem) {
+        return obra;
+      }
+
+      return {
+        ...addTimelineEvent(
+          obra,
+          createTimelineEvent(
+            'tarefa',
+            'Operação',
+            `Alinhamento registrado: ${changedItem.titulo}`,
+            content,
+            actorLabel,
+          ),
+        ),
+        operacao: {
+          ...obra.operacao,
+          tarefasDia,
+        },
+      };
+    });
+
+    showToast('success', 'Alinhamento registrado na tarefa.');
   }
 
   function cyclePendencia(index) {
@@ -535,22 +598,43 @@ export default function App() {
       const titulo = (obra.operacao.novaTarefaTitulo || '').trim();
       const responsavel = (obra.operacao.novaTarefaResponsavel || '').trim() || 'Equipe da obra';
       const horario = (obra.operacao.novaTarefaHorario || '').trim() || 'A definir';
+      const prazo = (obra.operacao.novaTarefaPrazo || '').trim() || horario;
+      const alinhamento = (obra.operacao.novoAlinhamentoTarefa || '').trim() || `Tarefa aberta por ${actorLabel}.`;
 
       if (!titulo) {
         return obra;
       }
 
-      showToast('warning', `Pendência criada: ${titulo}.`);
+      showToast('success', `Tarefa criada: ${titulo}.`);
 
       return {
-        ...obra,
+        ...addTimelineEvent(
+          obra,
+          createTimelineEvent(
+            'tarefa',
+            'Operação',
+            `Tarefa criada: ${titulo}`,
+            `${responsavel} • prazo ${prazo}.`,
+            actorLabel,
+          ),
+        ),
         operacao: {
           ...obra.operacao,
           novaTarefaTitulo: '',
           novaTarefaResponsavel: '',
           novaTarefaHorario: '',
+          novaTarefaPrazo: '',
+          novoAlinhamentoTarefa: '',
           tarefasDia: [
-            { titulo, responsavel, horario, status: 'planejado' },
+            {
+              titulo,
+              responsavel,
+              horario,
+              prazo,
+              alinhamento,
+              ultimaMovimentacao: `Criada em ${getNowLabel()}`,
+              status: 'planejado',
+            },
             ...obra.operacao.tarefasDia,
           ],
         },
@@ -1136,6 +1220,7 @@ export default function App() {
         tarefasDia: obraAtual.operacao.tarefasDia.map((item, index) => ({
           ...item,
           onAdvance: () => cycleTaskStatus(index),
+          onAddAlignment: (text) => addTaskAlignment(index, text),
         })),
         pendencias: obraAtual.operacao.pendencias.map((item, index) => ({
           ...item,
@@ -1156,6 +1241,8 @@ export default function App() {
         novaTarefaTitulo: obraAtual.operacao.novaTarefaTitulo || '',
         novaTarefaResponsavel: obraAtual.operacao.novaTarefaResponsavel || '',
         novaTarefaHorario: obraAtual.operacao.novaTarefaHorario || '',
+        novaTarefaPrazo: obraAtual.operacao.novaTarefaPrazo || '',
+        novoAlinhamentoTarefa: obraAtual.operacao.novoAlinhamentoTarefa || '',
         novaPendenciaTitulo: obraAtual.operacao.novaPendenciaTitulo || '',
         novaPendenciaImpacto: obraAtual.operacao.novaPendenciaImpacto || '',
         novaPendenciaDono: obraAtual.operacao.novaPendenciaDono || '',

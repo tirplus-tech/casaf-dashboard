@@ -18,7 +18,7 @@ function buildWelcomeMessage(obra) {
     role: 'assistant',
     answer: {
       title: '',
-      message: `Estou acompanhando ${obra.nomeCurto} com o contexto que já existe no sistema.\n\nSe você quiser, posso te responder de forma rápida sobre risco, prioridade, prazo, custo ou próximos passos sem precisar abrir várias telas antes.`,
+      message: `Estou acompanhando ${obra.nomeCurto} com o contexto que já existe no sistema.\n\nPosso te ajudar como central de trabalho: cobrar o que está sem resposta, montar o plano do dia, resumir a obra para diretoria ou cliente e te dizer a próxima decisão mais importante sem você caçar informação em várias telas.`,
       references: [],
       followUps: getAssistantSuggestions().slice(0, 3),
       confidence: 'Contexto carregado',
@@ -186,6 +186,11 @@ export default function AssistenteSection({ obra, onOpenSection }) {
   const followUps = lastAssistantMessage?.answer?.followUps?.slice(0, 3) || starterQuestions.slice(0, 3);
   const playbookCards = [
     {
+      label: 'Cobrança do dia',
+      title: 'Descubra quem ainda te deve resposta',
+      action: 'Quem ainda me deve resposta hoje nesta obra e qual cobrança precisa sair primeiro?',
+    },
+    {
       label: 'Destravar agora',
       title: 'Pergunte o que está travando a obra hoje',
       action: 'O que mais está travando esta obra agora e qual decisão eu tomo primeiro?',
@@ -201,6 +206,11 @@ export default function AssistenteSection({ obra, onOpenSection }) {
       action: 'Faça um resumo executivo curto desta obra para alinhamento com diretoria.',
     },
   ];
+  const dailyRoutines = [
+    '1. Pergunte o que está sem resposta.',
+    '2. Monte o plano do dia com dono e risco.',
+    '3. Feche o expediente com resumo e próximos passos.',
+  ];
 
   return (
     <div className="assistant-shell">
@@ -213,6 +223,12 @@ export default function AssistenteSection({ obra, onOpenSection }) {
             <div className="assistant-stage-title">Chat de {obra.nomeCurto}</div>
             <div className="assistant-stage-copy">Pergunte como em uma IA tradicional, com respostas contextualizadas pela obra.</div>
           </div>
+        </div>
+
+        <div className="assistant-ritual-banner">
+          {dailyRoutines.map((item) => (
+            <div key={item} className="assistant-ritual-pill">{item}</div>
+          ))}
         </div>
 
         <div className="assistant-playbook-grid">
